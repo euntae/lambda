@@ -1,0 +1,17 @@
+
+#전체 리전별 인스턴스 리스트 조회
+REGIONS=$(aws ec2 describe-regions --query 'Regions[*].RegionName' --output text); for REGION in $REGIONS; do echo $REGION; aws ec2 describe-instances --region $REGION --query 'Reservations[*].Instances[*].[Tags[?Key==`Name`].Value | [0],State.Name,InstanceId]' --output table; echo ""; done
+
+#전체 리전별 running 인스턴스 리스트 조회 및 Email 발송(SNS)
+REGIONS=$(aws ec2 describe-regions --query 'Regions[*].RegionName' --output text); for REGION in $REGIONS; do echo $REGION; aws ec2 describe-instances --filter "Name=instance-state-name,Values=running" --region $REGION --query 'Reservations[*].Instances[*].[Tags[?Key==`Name`].Value | [0],State.Name,InstanceId]' --output table; echo ""; done | xargs -0 -I {}  aws sns publish --region eu-west-1 --topic-arn "arn:aws:sns:eu-west-1:321653183891:csy-test" --subject "[BESPIN GLOBAL] Running Instance List for whole regions" --message {}
+
+#전체 리전별 Available 볼륨 리스트 조회
+REGIONS=$(aws ec2 describe-regions --query 'Regions[*].RegionName' --output text); for REGION in $REGIONS; do echo $REGION; aws ec2 describe-volumes --region $REGION --filter "Name=status,Values=available" --query 'Volumes[*].[Tags[?Key==`Name`].Value | [0],State,VolumeId]' --output table; echo ""; done
+
+#전체 리전별 Snapshot 리스트 조회
+OWNERID=$(aws sts get-caller-identity --query 'Account' --output text); REGIONS=$(aws ec2 describe-regions --query 'Regions[*].RegionName' --output text); for REGION in $REGIONS; do echo $REGION; aws ec2 describe-snapshots --region $REGION --owner-id $OWNERID --query 'Snapshots[*].{SnapshotId:SnapshotId,VolumeId:VolumeId,StartTime:StartTime,Description:Description}' --output table; echo ""; done
+
+#전체 리전별 Snapshot 리스트 조회 및 Email 발송(SNS)
+OWNERID=$(aws sts get-caller-identity --query 'Account' --output text); REGIONS=$(aws ec2 describe-regions --query 'Regions[*].RegionName' --output text); for REGION in $REGIONS; do echo $REGION; aws ec2 describe-snapshots --region $REGION --owner-id $OWNERID --query 'Snapshots[*].{SnapshotId:SnapshotId,VolumeId:VolumeId,VolumeSize:VolumeSize,StartTime:StartTime,Description:Description}' --output table; echo ""; done| xargs -0 -I {}  aws sns publish --region eu-west-1 --topic-arn "arn:aws:sns:eu-west-1:321653183891:csy-test" --subject "[BESPIN GLOBAL] Snapshot list for whole regions" --message {}
+
+REGIONS=$(aws ec2 describe-regions --query 'Regions[*].RegionName' --output text); for REGION in $REGIONS; do echo $REGION; aws ec2 describe-instances --region $REGION --query 'Reservations[*].Instances[*].[InstanceId]' --output text; done
